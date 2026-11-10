@@ -1,0 +1,58 @@
+(* ---------- Table 1 of the paper ---------- *)
+
+let one : [v:int | v = 1] = 1                          (* covered *)
+
+let one_wrong : [v:int | v = 1 || v = 2] = 1           (* NOT covered *)
+
+let nothing : [v:int | false] = err                    (* covered *)
+
+(* ---------- Booleans and choice ---------- *)
+
+let coin : [v:bool | true] = bool_gen ()               (* covered *)
+
+let flip : [v:bool | true] = not (bool_gen ())         (* covered *)
+
+let one_or_two : [v:int | v = 1 || v = 2] =            (* covered *)
+  if bool_gen () then 1 else 2
+
+let one_or_two_all : [v:int | true] =                  (* NOT covered *)
+  if bool_gen () then 1 else 2
+
+(* ---------- The even generator (paper, Section 2) ---------- *)
+
+let even_gen : [v:int | v mod 2 = 0] =                 (* covered *)
+  let n = int_gen () in
+  if n mod 2 == 0 then n else err
+
+let even_swapped : [v:int | v mod 2 = 0] =             (* NOT covered *)
+  let n = int_gen () in
+  if n mod 2 == 0 then err else n
+
+(* ---------- Functions with caller-chosen parameters ---------- *)
+
+let int_range (lo : {v:int | true}) (hi : {v:int | v >= lo})
+  : [v:int | lo <= v && v <= hi] =                     (* covered *)
+  let x = int_gen () in
+  if lo <= x && x <= hi then x else err
+
+let int_range_buggy (lo : {v:int | true}) (hi : {v:int | v >= lo})
+  : [v:int | lo <= v && v <= hi] =                     (* NOT covered: misses lo *)
+  let x = int_gen () in
+  if lo < x && x <= hi then x else err
+
+(* ---------- Calling other generators (paper, Fig. 3) ---------- *)
+
+let at_least (low : {v:int | true}) : [v:int | v >= low] =           (* covered *)
+  int_range low (int_gen ())
+
+let at_least_swapped (low : {v:int | true}) : [v:int | v >= low] =   (* NOT covered *)
+  int_range (int_gen ()) low
+
+let at_most (low : {v:int | true}) : [v:int | v <= low] =            (* covered *)
+  int_range (int_gen ()) low
+
+let one_to_three : [v:int | v = 1 || v = 2 || v = 3] =               (* covered *)
+  if bool_gen () then 1 else int_range 2 3
+
+let bad_call : [v:int | v = 5] =                       (* NOT covered: breaks hi >= lo *)
+  int_range 5 1

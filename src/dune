@@ -1,0 +1,8 @@
+(library
+ (name coverage)
+ (libraries unix))
+
+(ocamllex lexer)
+
+(menhir
+ (modules parser))
